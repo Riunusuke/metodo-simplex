@@ -3,7 +3,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 def main():
-    
+    st.set_page_config(
+        page_title="Método Simplex",
+        page_icon="🤖"
+    )
     # Página incial
     st.title('Método simplex')
     
