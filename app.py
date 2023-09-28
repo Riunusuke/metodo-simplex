@@ -139,12 +139,13 @@ def metodo_simplex_penalizacion(x,r,obj,FO,arr,option,rest):
         arr = np.round(np.dot(B_inv,A),14)
         b_r = np.round(np.dot(B_inv,b),14)
         
+        
         #st.write(arr)
         h += 1
     
     if opt_encontrado:
         if Zj[0,x] < 0:
-            st.write('No se pudo encontrar la solución optima')
+            st.write('### :red[Error! No hay solución factible]')
             return
         st.write('### Solución optima')
         st.write(f'$Z = {Zj[0,x]}$')
