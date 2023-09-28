@@ -23,6 +23,8 @@ def main():
     if x == 2:
         margen = st.number_input('Ancho de la gráfica', min_value=1, value=10)
         margen = margen/2
+    else:
+        margen = 0
     # Entrada de la función objetivo    
     st.write('### Función Objetivo')
     FO = np.empty((1, x))
