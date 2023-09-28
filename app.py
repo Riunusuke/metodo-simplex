@@ -103,7 +103,7 @@ def metodo_simplex_penalizacion(x,r,obj,FO,arr,option,rest,margen):
     while True:
     #for p in range(5):
         if h > 10000:
-            st.write('### :red[Error!: Problema no acotado]')
+            st.write('### :red[Error!: No se pudo encontrar una solución óptima]')
             break
         Zj = np.round(calcular_Zj(var_bas,arr,x,b_r,Cj),14)
         #st.write('Zj',Zj)
@@ -113,6 +113,9 @@ def metodo_simplex_penalizacion(x,r,obj,FO,arr,option,rest,margen):
         base = seleccionar_base(obj,Zj_Cj,x)
         #st.write('base',base)
         co_min = np.round(cociente_minimo(b_r,arr,base,r),10)
+        if co_min[0,r] == -1:
+            st.write('### :red[Error!: Problema no acotado]')
+            break
         #st.write('co_min',co_min)
         tablero += graficar_tablero(var_bas,Cj,x,r,arr,b_r, Zj,Zj_Cj, base,co_min)        
         
@@ -144,7 +147,7 @@ def metodo_simplex_penalizacion(x,r,obj,FO,arr,option,rest,margen):
         
         #st.write(arr)
         h += 1
-    
+    #st.write(tablero)
     if opt_encontrado:
         if Zj[0,x] < 0:
             st.write('### :red[Error! No hay solución factible]')
