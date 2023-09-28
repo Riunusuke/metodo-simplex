@@ -11,7 +11,7 @@ def main():
     st.title('Método simplex')
     
     # Selección del método
-    st.selectbox('Método',('Penalización (Gran M)','Dos fases'))
+    metodo = st.selectbox('Método',('Penalización (Gran M)','Dos fases'))
     
     ## Entrada de número de variables y restricciones
     x = st.number_input('Inserte número de variables',min_value=1)
@@ -45,9 +45,10 @@ def main():
         
     # Botón para continuar con el método simplex        
     if st.button("Continuar",key='boton1'):
-        metodo_simplex(x,r,obj,FO,arr,option,rest)
+        if metodo == 'Penalización (Gran M)':
+            metodo_simplex_penalizacion(x,r,obj,FO,arr,option,rest)
         
-def metodo_simplex(x,r,obj,FO,arr,option,rest):
+def metodo_simplex_penalizacion(x,r,obj,FO,arr,option,rest):
     
     x_a = x
     restricciones = arr.copy()
