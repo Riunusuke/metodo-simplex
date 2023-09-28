@@ -21,8 +21,7 @@ def main():
     obj = st.selectbox('¿Cuál es el objetivo de la función?', ('Maximizar','Minimizar'))
     
     if x == 2:
-        margen = st.number_input('Ancho de la gráfica', min_value=1, value=10)
-        margen = margen/2
+        margen = st.number_input('Escala de la gráfica', min_value=1, value=10)
     else:
         margen = 0
     # Entrada de la función objetivo    
@@ -57,7 +56,7 @@ def metodo_simplex_penalizacion(x,r,obj,FO,arr,option,rest,margen):
     
     x_a = x
     restricciones = arr.copy()
-    
+    FO_original = FO.copy()
     # Inicialización de variable M en función del objetivo    
     if obj == 'Maximizar':
         M = -999999999999
@@ -150,6 +149,7 @@ def metodo_simplex_penalizacion(x,r,obj,FO,arr,option,rest,margen):
         #st.write(arr)
         h += 1
     #st.write(tablero)
+    solucion_Z = 0
     if opt_encontrado:
         if Zj[0,x] < 0:
             st.write('### :red[Error! No hay solución factible]')
@@ -159,6 +159,7 @@ def metodo_simplex_penalizacion(x,r,obj,FO,arr,option,rest,margen):
             st.write('### Solución optima')
             factible = True
             st.write(f'$Z = {Zj[0,x]}$')
+            solucion_Z = Zj[0,x]
             m = 0
             solucion = np.zeros((1,x_a))
             for i in range(x_a):
@@ -172,7 +173,7 @@ def metodo_simplex_penalizacion(x,r,obj,FO,arr,option,rest,margen):
     else:
         factible = False
         solucion = np.full((1,x_a),margen-(0.2*margen))            
-    crear_grafica(x_a,r,solucion,restricciones,b,option,factible,margen)
+    crear_grafica(x_a,r,solucion,restricciones,b,option,factible,margen,FO_original,solucion_Z)
         
     
 def estandarizar(x,r,FO,arr,option,rest, M):
@@ -368,6 +369,9 @@ def cociente_minimo(b,arr,base,r):
     for i in range(r):
         #st.write(b[i])
         co_min[0,i] = b[i] / arr[i,base]
+        if co_min[0,i] == min[0]:
+            co_min[0,r] = -1
+            return co_min
         if co_min[0,i] >= 0 and co_min[0,i] < min[0]:
             min = [co_min[0,i],i]
     co_min[0,r] = min[1]
@@ -386,7 +390,7 @@ def obtener_B_inv(A,var_bas,r,x):
     B_inv = np.linalg.inv(B)
     return B_inv
 
-def crear_grafica(x_a,r,solucion,restricciones,b,option,factible,margen):
+def crear_grafica(x_a,r,solucion,restricciones,b,option,factible,margen,FO_original,solucion_Z):
     if x_a == 2:
         u = np.zeros((r,))
         for i in range(r):
@@ -434,6 +438,19 @@ def crear_grafica(x_a,r,solucion,restricciones,b,option,factible,margen):
                 ax.plot(X,Y,color=color)
             #st.write(b[i],restricciones[i,0],restricciones[i,1])
         if factible:
+            X = np.linspace(solucion[0,0]-(margen*0.8),solucion[0,0]+(margen*0.8),puntos)
+            for i in range(puntos):
+                if FO_original[0,0] == 0:
+                    Y[i] = solucion_Z/FO_original[0,1]
+                elif FO_original[0,1] == 0:
+                    Y[i] = solucion_Z/FO_original[0,0]
+                else:
+                    Y[i] = (solucion_Z-FO_original[0,0]*X[i])/FO_original[0,1]
+            if FO_original[0,1] == 0:
+                X_1 = np.linspace(solucion[0,0]-(margen*1.4),solucion[0,0]+(margen*0.4),puntos)
+                ax.plot(Y,X_1,color='brown')
+            else:
+                ax.plot(X,Y,color='brown')
             ax.plot(solucion[0,0],solucion[0,1],marker='o', markersize=5, color='black')
         ax.set_xlabel('$x_1$')
         ax.set_ylabel('$x_2$')
