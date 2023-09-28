@@ -20,6 +20,9 @@ def main():
     # Selección de objetivo (Maximizar o Minimizar)    
     obj = st.selectbox('¿Cuál es el objetivo de la función?', ('Maximizar','Minimizar'))
     
+    if x == 2:
+        margen = st.number_input('Margen de la gráfica', min_value=1)
+    
     # Entrada de la función objetivo    
     st.write('### Función Objetivo')
     FO = np.empty((1, x))
@@ -46,9 +49,9 @@ def main():
     # Botón para continuar con el método simplex        
     if st.button("Continuar",key='boton1'):
         if metodo == 'Penalización (Gran M)':
-            metodo_simplex_penalizacion(x,r,obj,FO,arr,option,rest)
+            metodo_simplex_penalizacion(x,r,obj,FO,arr,option,rest,margen)
         
-def metodo_simplex_penalizacion(x,r,obj,FO,arr,option,rest):
+def metodo_simplex_penalizacion(x,r,obj,FO,arr,option,rest,margen):
     
     x_a = x
     restricciones = arr.copy()
@@ -146,20 +149,23 @@ def metodo_simplex_penalizacion(x,r,obj,FO,arr,option,rest):
     if opt_encontrado:
         if Zj[0,x] < 0:
             st.write('### :red[Error! No hay solución factible]')
-            return
-        st.write('### Solución optima')
-        st.write(f'$Z = {Zj[0,x]}$')
-        m = 0
-        solucion = np.zeros((1,x_a))
-        for i in range(x_a):
-            if var_bas[0,i] == 1:
-                st.write(f'$x_{{{i+1}}}={b_r[m]}$')
-                solucion[0,i] = b_r[m]
-                m+=1
-            else:
-                st.write(f'$x_{{{i+1}}}=0$')
-                solucion[0,i] = 0
-        crear_grafica(x_a,r,solucion,restricciones,b,option)
+            factible = False
+            solucion = np.full((1,x_a),margen-(0.2*margen))            
+        else:
+            st.write('### Solución optima')
+            factible = True
+            st.write(f'$Z = {Zj[0,x]}$')
+            m = 0
+            solucion = np.zeros((1,x_a))
+            for i in range(x_a):
+                if var_bas[0,i] == 1:
+                    st.write(f'$x_{{{i+1}}}={b_r[m]}$')
+                    solucion[0,i] = b_r[m]
+                    m+=1
+                else:
+                    st.write(f'$x_{{{i+1}}}=0$')
+                    solucion[0,i] = 0
+        crear_grafica(x_a,r,solucion,restricciones,b,option,factible,margen)
         
     
 def estandarizar(x,r,FO,arr,option,rest, M):
@@ -373,7 +379,7 @@ def obtener_B_inv(A,var_bas,r,x):
     B_inv = np.linalg.inv(B)
     return B_inv
 
-def crear_grafica(x_a,r,solucion,restricciones,b,option):
+def crear_grafica(x_a,r,solucion,restricciones,b,option,factible,margen):
     if x_a == 2:
         u = np.zeros((r,))
         for i in range(r):
@@ -382,7 +388,6 @@ def crear_grafica(x_a,r,solucion,restricciones,b,option):
             elif restricciones[i,1] == 0:
                 u[i] = 2
         st.write('### Gráfica')
-        margen = 7
         puntos = 10
         fig, ax = plt.subplots()
         X = np.linspace(solucion[0,0]-margen,solucion[0,0]+margen,puntos)
@@ -415,7 +420,8 @@ def crear_grafica(x_a,r,solucion,restricciones,b,option):
                     ax.fill_between(X, (margen*100), Y, color='red', alpha=0.3)
                 ax.plot(X,Y,color=color)
             #st.write(b[i],restricciones[i,0],restricciones[i,1])
-        ax.plot(solucion[0,0],solucion[0,1],marker='o', markersize=5, color='black')
+        if factible:
+            ax.plot(solucion[0,0],solucion[0,1],marker='o', markersize=5, color='black')
         ax.set_xlabel('$x_1$')
         ax.set_ylabel('$x_2$')
         
@@ -424,7 +430,7 @@ def crear_grafica(x_a,r,solucion,restricciones,b,option):
 
         # Resaltar el eje x (horizontal)
         ax.axhline(0, color='black', linewidth=1)
-
+        
         # Resaltar el eje y (vertical)
         ax.axvline(0, color='black', linewidth=1)
         ax.grid(True)
