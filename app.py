@@ -382,7 +382,7 @@ def crear_grafica(x_a,r,solucion,restricciones,b,option):
             elif restricciones[i,1] == 0:
                 u[i] = 2
         st.write('### Gráfica')
-        margen = 1
+        margen = 7
         puntos = 10
         fig, ax = plt.subplots()
         X = np.linspace(solucion[0,0]-margen,solucion[0,0]+margen,puntos)
@@ -404,17 +404,29 @@ def crear_grafica(x_a,r,solucion,restricciones,b,option):
             
             color = color_mapping.get(option[i], 'gray')
             if u[i] == 2:
-                margen=5
-                X = np.linspace(solucion[0,0]-margen,solucion[0,0]+margen,puntos)
-                ax.plot(Y,X,color=color)
-                margen=1
-                X = np.linspace(solucion[0,0]-margen,solucion[0,0]+margen,puntos)
+                X_1 = np.linspace(solucion[0,0]-(margen*5),solucion[0,0]+(margen*5),puntos)
+                ax.plot(Y,X_1,color=color)
             else:
+                if option[i] == '<=':
+                    # Sombreamos desde Y hasta menos margen*100
+                    ax.fill_between(X, Y, -(margen*100), color='lightblue', alpha=0.5)
+                elif option[i] == '>=':
+                    #Sombreamos desde margen*100 hasta Y
+                    ax.fill_between(X, (margen*100), Y, color='red', alpha=0.3)
                 ax.plot(X,Y,color=color)
             #st.write(b[i],restricciones[i,0],restricciones[i,1])
         ax.plot(solucion[0,0],solucion[0,1],marker='o', markersize=5, color='black')
         ax.set_xlabel('$x_1$')
         ax.set_ylabel('$x_2$')
+        
+        ax.set_xlim(solucion[0,0] - margen, solucion[0,0] + margen)
+        ax.set_ylim(solucion[0,1] - margen, solucion[0,1] + margen)
+
+        # Resaltar el eje x (horizontal)
+        ax.axhline(0, color='black', linewidth=1)
+
+        # Resaltar el eje y (vertical)
+        ax.axvline(0, color='black', linewidth=1)
         ax.grid(True)
         st.pyplot(fig)
                
