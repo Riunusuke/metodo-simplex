@@ -21,8 +21,8 @@ def main():
     obj = st.selectbox('¿Cuál es el objetivo de la función?', ('Maximizar','Minimizar'))
     
     if x == 2:
-        margen = st.number_input('Margen de la gráfica', min_value=1)
-    
+        margen = st.number_input('Ancho de la gráfica', min_value=1, value=10)
+        margen = margen/2
     # Entrada de la función objetivo    
     st.write('### Función Objetivo')
     FO = np.empty((1, x))
@@ -103,8 +103,7 @@ def metodo_simplex_penalizacion(x,r,obj,FO,arr,option,rest,margen):
     while True:
     #for p in range(5):
         if h > 10000:
-            tablero = 'No se puede obtener una solución optima'
-            st.write(tablero)
+            st.write('### :red[Error!: Problema no acotado]')
             break
         Zj = np.round(calcular_Zj(var_bas,arr,x,b_r,Cj),14)
         #st.write('Zj',Zj)
@@ -165,7 +164,10 @@ def metodo_simplex_penalizacion(x,r,obj,FO,arr,option,rest,margen):
                 else:
                     st.write(f'$x_{{{i+1}}}=0$')
                     solucion[0,i] = 0
-        crear_grafica(x_a,r,solucion,restricciones,b,option,factible,margen)
+    else:
+        factible = False
+        solucion = np.full((1,x_a),margen-(0.2*margen))            
+    crear_grafica(x_a,r,solucion,restricciones,b,option,factible,margen)
         
     
 def estandarizar(x,r,FO,arr,option,rest, M):
@@ -411,13 +413,19 @@ def crear_grafica(x_a,r,solucion,restricciones,b,option,factible,margen):
             if u[i] == 2:
                 X_1 = np.linspace(solucion[0,0]-(margen*5),solucion[0,0]+(margen*5),puntos)
                 ax.plot(Y,X_1,color=color)
+                #st.write(np.linspace(Y[0],margen*100,puntos),(margen*100))
+                if option[i] == '>=':
+                    ax.fill_between(np.linspace(Y[0],margen*100,puntos), (margen*100),-(margen*100), color='red', alpha=0.15)
+                elif option[i] == '<=':
+                    ax.fill_between(np.linspace(-margen*100,Y[0],puntos), (margen*100),-(margen*100), color='blue', alpha=0.15)
+                
             else:
                 if option[i] == '<=':
                     # Sombreamos desde Y hasta menos margen*100
-                    ax.fill_between(X, Y, -(margen*100), color='lightblue', alpha=0.5)
+                    ax.fill_between(X, Y, -(margen*100), color='blue', alpha=0.15)
                 elif option[i] == '>=':
                     #Sombreamos desde margen*100 hasta Y
-                    ax.fill_between(X, (margen*100), Y, color='red', alpha=0.3)
+                    ax.fill_between(X, (margen*100), Y, color='red', alpha=0.15)
                 ax.plot(X,Y,color=color)
             #st.write(b[i],restricciones[i,0],restricciones[i,1])
         if factible:
