@@ -447,7 +447,7 @@ def crear_grafica(x_a,r,solucion,restricciones,b,option,factible,margen,FO_origi
                 else:
                     Y[i] = (solucion_Z-FO_original[0,0]*X[i])/FO_original[0,1]
             if FO_original[0,1] == 0:
-                X_1 = np.linspace(solucion[0,0]-(margen*1.4),solucion[0,0]+(margen*0.4),puntos)
+                X_1 = np.linspace(solucion[0,0]-(margen*1.1),solucion[0,0]+(margen*0.7),puntos)
                 ax.plot(Y,X_1,color='brown')
             else:
                 ax.plot(X,Y,color='brown')
