@@ -13,6 +13,9 @@ def main():
     # Selección del método
     metodo = st.selectbox('Método',('Penalización (Gran M)','Dos fases'))
     
+    if metodo == 'Penalización (Gran M)':
+        M = st.number_input('Inserte el valor de M',min_value=1,value=999999999999)
+    
     ## Entrada de número de variables y restricciones
     x = st.number_input('Inserte número de variables',min_value=1)
     r = st.number_input('Inserte número de restricciones', min_value=1)
@@ -21,7 +24,7 @@ def main():
     obj = st.selectbox('¿Cuál es el objetivo de la función?', ('Maximizar','Minimizar'))
     
     if x == 2:
-        margen = st.number_input('Escala de la gráfica', min_value=1, value=10)
+        margen = st.number_input('Amplitud de la gráfica', min_value=1, value=10)
     else:
         margen = 0
     # Entrada de la función objetivo    
@@ -50,18 +53,18 @@ def main():
     # Botón para continuar con el método simplex        
     if st.button("Continuar",key='boton1'):
         if metodo == 'Penalización (Gran M)':
-            metodo_simplex_penalizacion(x,r,obj,FO,arr,option,rest,margen)
+            metodo_simplex_penalizacion(M,x,r,obj,FO,arr,option,rest,margen)
         
-def metodo_simplex_penalizacion(x,r,obj,FO,arr,option,rest,margen):
+def metodo_simplex_penalizacion(M,x,r,obj,FO,arr,option,rest,margen):
     
     x_a = x
     restricciones = arr.copy()
     FO_original = FO.copy()
     # Inicialización de variable M en función del objetivo    
     if obj == 'Maximizar':
-        M = -999999999999
+        M = -M
     elif obj == 'Minimizar':
-        M = 999999999999
+        M = M
     
     #Estandarizar
     x,r,FO,arr,option,rest = estandarizar(x,r,FO,arr,option,rest,M)
