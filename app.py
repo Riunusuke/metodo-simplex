@@ -77,10 +77,10 @@ def metodo_simplex_penalizacion(M,x,r,obj,FO,arr,option,rest,margen):
     texto_FO = f'${obj}$ $Z ='
     for i in range(x-1):
         if FO[0,i+1] >= 0:
-            texto_FO += f'{FO[0,i]}x_{{{i}}}+'
+            texto_FO += f'{FO[0,i]}x_{{{i+1}}}+'
         else:
-            texto_FO += f'{FO[0,i]}x_{{{i}}}'
-    texto_FO += f'{FO[0,x-1]}x_{{{x-1}}}$'
+            texto_FO += f'{FO[0,i]}x_{{{i+1}}}'
+    texto_FO += f'{FO[0,x-1]}x_{{{x}}}$'
     st.write(texto_FO)
     
     st.write('##### Restricciones')
@@ -88,10 +88,10 @@ def metodo_simplex_penalizacion(M,x,r,obj,FO,arr,option,rest,margen):
         texto_r = f'{i+1}. $'
         for j in range(x-1):
             if arr[i,j+1] >= 0:
-                texto_r += f'{arr[i,j]}x_{{{j}}}+'
+                texto_r += f'{arr[i,j]}x_{{{j+1}}}+'
             else:
-                texto_r += f'{arr[i,j]}x_{{{j}}}'
-        texto_r += f'{arr[i,x-1]}x_{{{x-1}}}={rest[i]}$'
+                texto_r += f'{arr[i,j]}x_{{{j+1}}}'
+        texto_r += f'{arr[i,x-1]}x_{{{x}}}={rest[i]}$'
         st.write(texto_r)
         
     # Preparar tablero inicial
@@ -117,11 +117,14 @@ def metodo_simplex_penalizacion(M,x,r,obj,FO,arr,option,rest,margen):
         base = seleccionar_base(obj,Zj_Cj,x)
         #st.write('base',base)
         co_min = np.round(cociente_minimo(b_r,arr,base,r),10)
-        if co_min[0,r] == -1:
-            st.write('### :red[Error!: Problema no acotado]')
-            break
+        
         #st.write('co_min',co_min)
         tablero += graficar_tablero(var_bas,Cj,x,r,arr,b_r, Zj,Zj_Cj, base,co_min)        
+        
+        if co_min[0,r] == -1:
+            st.write('### :red[Error!: Problema no acotado]')
+            st.write(tablero)
+            break
         
         if prueba_optimalidad(obj,Zj_Cj,x) == True:
             st.write(tablero)
@@ -154,11 +157,18 @@ def metodo_simplex_penalizacion(M,x,r,obj,FO,arr,option,rest,margen):
     #st.write(tablero)
     solucion_Z = 0
     if opt_encontrado:
-        if Zj[0,x] < 0:
-            st.write('### :red[Error! No hay solución factible]')
-            factible = False
-            solucion = np.full((1,x_a),margen-(0.2*margen))            
-        else:
+        CB = obtener_CB(var_bas,x,Cj)
+        Factible = True
+        for i in CB:
+            #st.write(i,M)
+            if i == M:
+                #st.write(obtener_CB(var_bas,x,Cj))
+                st.write('### :red[Error! No hay solución factible]')                
+                factible = False
+                solucion = np.full((1,x_a),margen-(0.2*margen))            
+                Factible = False
+                break
+        if Factible:
             st.write('### Solución optima')
             factible = True
             st.write(f'$Z = {Zj[0,x]}$')
@@ -372,11 +382,11 @@ def cociente_minimo(b,arr,base,r):
     for i in range(r):
         #st.write(b[i])
         co_min[0,i] = b[i] / arr[i,base]
-        if co_min[0,i] == min[0]:
-            co_min[0,r] = -1
-            return co_min
         if co_min[0,i] >= 0 and co_min[0,i] < min[0]:
             min = [co_min[0,i],i]
+        #if co_min[0,i] == min[0]:
+            #co_min[0,r] = -1
+            #return co_min
     co_min[0,r] = min[1]
     return co_min
 
