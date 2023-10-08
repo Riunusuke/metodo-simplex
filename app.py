@@ -453,7 +453,7 @@ def seleccionar_base(obj,Zj_Cj,x):
 
 def cociente_minimo(b,arr,base,r):
     co_min = np.zeros((1,r+1)) #matriz vacia del tamaño de restricciones +1
-    min = [999999999999999999,-1] .
+    min = [999999999999999999,-1]
     #buscamos el >= 0 mas pequeño, asi que tomamos un gran valor, y variable de control para saber si se encontro cociente minimo
     for i in range(r):
         #st.write(b[i])
