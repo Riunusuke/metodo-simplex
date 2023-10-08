@@ -67,7 +67,8 @@ def main():
         #funcion para la revision del metodo que se usara
         if metodo == 'Penalización (Gran M)':
             metodo_simplex_penalizacion(M,x,r,obj,FO,arr,option,rest,margen)
-        
+        elif metodo == 'Dos fases':
+            metodo_simplex_dos_fases(x,r,obj,FO,arr,option,rest,margen)
 #inicializacion del metodo simplex de penalizacion
 def metodo_simplex_penalizacion(M,x,r,obj,FO,arr,option,rest,margen):
     #variables de control sin estandarizar
@@ -82,7 +83,7 @@ def metodo_simplex_penalizacion(M,x,r,obj,FO,arr,option,rest,margen):
         M = M
     
     #Estandarizar
-    x,r,FO,arr,option,rest = estandarizar(x,r,FO,arr,option,rest,M)
+    x,r,FO,arr,option,rest,var_art = estandarizar(x,r,FO,arr,option,rest,M,'Penalización (Gran M)')
     #finalizamos las variables ya estandarizadas
     
     # Mostrar estandarizado  
@@ -223,9 +224,268 @@ def metodo_simplex_penalizacion(M,x,r,obj,FO,arr,option,rest,margen):
         factible = False
         solucion = np.full((1,x_a),margen-(0.2*margen))            
     crear_grafica(x_a,r,solucion,restricciones,b,option,factible,margen,FO_original,solucion_Z)
-        
+
+def metodo_simplex_dos_fases(x,r,obj,FO,arr,option,rest,margen):
+    #Metodo simplex para resolver problemas con dos fases 
+    #variables de control sin estandarizar
     
-def estandarizar(x,r,FO,arr,option,rest, M):
+    #Fase 1
+    st.write('## Fase 1')
+    
+    x_a = x #guardamos las variables del problema sin estadarizar
+    restricciones = arr.copy() #guardamos las restricciones sin estandarizar
+    FO_original = FO.copy() #guardamos la funcion objetivo original sin estandarizar
+    
+    x,r,FO,FO2,arr,option,rest,var_art = estandarizar(x,r,FO,arr,option,rest, 1, 'Dos fases')
+    st.write('### Estandarizado')
+    st.write('##### Función objetivo')
+    
+    # ... Código para mostrar la función objetivo y restricciones estandarizadas
+    texto_FO = f'$Minimizar$ $W =' #imprime el objetivo de la FO (max o min)
+    for i in range(x-1): #la ultima iteracion se realiza por fuera
+        #evaluamos el valor del siguiente cociente
+        if FO[0,i+1] >= 0:
+            #si el valor es positivo solo ponemos el numero,la variable, y el signo de +
+            texto_FO += f'{FO[0,i]}x_{{{i+1}}}+'
+        else:
+            #si el valor es negativo, ponemos el numero, variable y continua con la iteracion (la siguiente viene con el valor negativo)
+            texto_FO += f'{FO[0,i]}x_{{{i+1}}}'
+    #añadimos el ultimo cociente con la variable
+    texto_FO += f'{FO[0,x-1]}x_{{{x}}}$'
+    st.write(texto_FO) #imprimir
+    #la impresion de estos valores es  la misma logica anterior
+    st.write('##### Restricciones')
+    for i in range(r):
+        texto_r = f'{i+1}. $'
+        for j in range(x-1):
+            if arr[i,j+1] >= 0:
+                texto_r += f'{arr[i,j]}x_{{{j+1}}}+'
+            else:
+                texto_r += f'{arr[i,j]}x_{{{j+1}}}'
+        texto_r += f'{arr[i,x-1]}x_{{{x}}}={rest[i]}$'#la diferencia es el que añadimos el valor derecho de la desigualdad
+        st.write(texto_r)
+        
+    # Preparar tablero inicial
+    var_bas,Cj,b,A,k,tablero = preparar_tablero(x,x_a,r,obj,FO,arr,option,rest,1)
+    if k == 0:
+        st.write('No hay variables basicas')
+        return 
+    b_r = b.copy() #guarda los datos del "lado derecho"
+    #st.write(tablero) #Debug
+    # Bucle para aplicar el método simplex
+    h = 0 #variable de control de iteraciones
+    opt_encontrado = False #control de hayar solucion
+    
+    while True:        
+    #for p in range(5):
+        if h > 10000: #criterio de parada de iteraciones
+            st.write('### :red[Error!: No se pudo encontrar una solución óptima]')
+            break
+        
+        Zj = np.round(calcular_Zj(var_bas,arr,x,b_r,Cj),14) #calcula Zj
+        # round = redondea a 14 cifras decimales criticas
+        #st.write('Zj',Zj) #debug
+        Zj_Cj = np.round(calcular_Zj_Cj(Zj,Cj,x),14) #calcula Zj-cj
+        #st.write('Zj_Cj',Zj_Cj)# debug
+        
+        base = seleccionar_base('Minimizar',Zj_Cj,x) #busca la posicion de la nueva base
+        #st.write('base',base)
+        co_min = np.round(cociente_minimo(b_r,arr,base,r),10) 
+        #conseguimos el vector con los cocientes minimos y la posicion del elegido
+        
+        #st.write('co_min',co_min)
+        tablero += graficar_tablero(var_bas,Cj,x,r,arr,b_r, Zj,Zj_Cj, base,co_min)#graficar tablero     
+        
+        if co_min[0,r] == -1:
+        #cuando nos devuelve un cociente minimo que no cumpla las caracteristicas
+            st.write('### :red[Error!: Problema no acotado]')
+            st.write(tablero)
+            break
+        
+        if prueba_optimalidad('Minimizar',Zj_Cj,x):
+            st.write(tablero)
+            opt_encontrado = True #cambiamos variable de control del bucle
+            break #rompemos el bucle
+           
+        ## Cambio de base
+        #st.write(var_bas)
+        k=0 #variable de control
+        for i in range(x):
+            #var_bas = vector de las variables basicas
+            if var_bas[0,i] == 1:
+            #comprobamos si es una variable basica
+                if k == co_min[0,r]:
+                    #si el cociente minimo es = a k
+                    var_bas[0,i] = 0 #la convierte en 0 sacandola de la base
+                    var_bas[0,base] = 1 #y convierte en uno la que entra
+                    break
+                else:
+                    k += 1
+        #st.write('var_bas',var_bas)                
+        
+        B_inv = obtener_B_inv(A,var_bas,r,x)
+        #st.write('B_inv',B_inv)
+        #st.write('A',A)
+        #st.write('b',b)
+        arr = np.round(np.dot(B_inv,A),14) #multiplicamos A*Binversa
+        b_r = np.round(np.dot(B_inv,b),14) #multiplicamos b*Binversa
+        
+        
+        #st.write(arr)
+        h += 1 #contador de criterio de parada
+    
+    solucion_Z = 0 #solucion del problema
+    
+    
+    # 2 FASE
+    
+    st.write('## Fase 2')
+    
+    st.write('##### Función objetivo')    
+    
+    A,x2,FO,arr,var_art,var_bas = eliminar_artificiales(A,x,FO2,arr,var_art,var_bas)
+    
+    
+    # ... Código para mostrar la función objetivo y restricciones estandarizadas
+    texto_FO = f'${obj}$ $Z =' #imprime el objetivo de la FO (max o min)
+    for i in range(x2-1): #la ultima iteracion se realiza por fuera
+        #evaluamos el valor del siguiente cociente
+        if FO[0,i+1] >= 0:
+            #si el valor es positivo solo ponemos el numero,la variable, y el signo de +
+            texto_FO += f'{FO[0,i]}x_{{{i+1}}}+'
+        else:
+            #si el valor es negativo, ponemos el numero, variable y continua con la iteracion (la siguiente viene con el valor negativo)
+            texto_FO += f'{FO[0,i]}x_{{{i+1}}}'
+    #añadimos el ultimo cociente con la variable
+    texto_FO += f'{FO[0,x2-1]}x_{{{x2}}}$'
+    st.write(texto_FO) #imprimir
+    
+    st.write('##### Restricciones')
+    for i in range(r):
+        texto_r = f'{i+1}. $'
+        for j in range(x2-1):
+            if arr[i,j+1] >= 0:
+                texto_r += f'{arr[i,j]}x_{{{j+1}}}+'
+            else:
+                texto_r += f'{arr[i,j]}x_{{{j+1}}}'
+        texto_r += f'{arr[i,x2-1]}x_{{{x2}}}={rest[i]}$'#la diferencia es el que añadimos el valor derecho de la desigualdad
+        st.write(texto_r)
+        
+    # Preparar tablero inicial
+    v,Cj,c,a,k,tablero = preparar_tablero(x2,x_a,r,obj,FO,arr,option,b_r,1)
+    
+    b_r = b.copy() #guarda los datos del "lado derecho"
+    #st.write(tablero) #Debug
+    # Bucle para aplicar el método simplex
+    h = 0 #variable de control de iteraciones
+    opt_encontrado = False #control de hayar solucion
+    
+    while True:        
+    #for p in range(5):
+        if h > 10000: #criterio de parada de iteraciones
+            st.write('### :red[Error!: No se pudo encontrar una solución óptima]')
+            break
+        
+        Zj = np.round(calcular_Zj(var_bas,arr,x2,b_r,Cj),14) #calcula Zj
+        # round = redondea a 14 cifras decimales criticas
+        #st.write('Zj',Zj) #debug
+        Zj_Cj = np.round(calcular_Zj_Cj(Zj,Cj,x2),14) #calcula Zj-cj
+        #st.write('Zj_Cj',Zj_Cj)# debug
+        
+        base = seleccionar_base('Minimizar',Zj_Cj,x2) #busca la posicion de la nueva base
+        #st.write('base',base)
+        co_min = np.round(cociente_minimo(b_r,arr,base,r),10) 
+        #conseguimos el vector con los cocientes minimos y la posicion del elegido
+        
+        #st.write('co_min',co_min)
+        tablero += graficar_tablero(var_bas,Cj,x2,r,arr,b_r, Zj,Zj_Cj, base,co_min)#graficar tablero     
+        
+        if co_min[0,r] == -1:
+        #cuando nos devuelve un cociente minimo que no cumpla las caracteristicas
+            st.write('### :red[Error!: Problema no acotado]')
+            st.write(tablero)
+            break
+        
+        if prueba_optimalidad('Minimizar',Zj_Cj,x2):
+            st.write(tablero)
+            opt_encontrado = True #cambiamos variable de control del bucle
+            break #rompemos el bucle
+           
+        ## Cambio de base
+        #st.write(var_bas)
+        k=0 #variable de control
+        for i in range(x2):
+            #var_bas = vector de las variables basicas
+            if var_bas[0,i] == 1:
+            #comprobamos si es una variable basica
+                if k == co_min[0,r]:
+                    #si el cociente minimo es = a k
+                    var_bas[0,i] = 0 #la convierte en 0 sacandola de la base
+                    var_bas[0,base] = 1 #y convierte en uno la que entra
+                    break
+                else:
+                    k += 1
+        #st.write('var_bas',var_bas)                
+        
+        B_inv = obtener_B_inv(A,var_bas,r,x2)
+        #st.write('B_inv',B_inv)
+        #st.write('A',A)
+        #st.write('b',b)
+        arr = np.round(np.dot(B_inv,A),14) #multiplicamos A*Binversa
+        b_r = np.round(np.dot(B_inv,b),14) #multiplicamos b*Binversa
+        
+        
+        #st.write(arr)
+        h += 1 #contador de criterio de parada
+    
+    #fuera del bucle
+    #st.write(tablero)
+    solucion_Z = 0 #solucion del problema
+    if opt_encontrado:
+        #evaluamos si tenemos solucion optima
+        CB = obtener_CB(var_bas,x2,Cj) #obtenemos el CB
+        #si la solucion es factible
+        st.write('### Solución optima')
+        factible = True
+        st.write(f'$Z = {Zj[0,x2]}$')
+        solucion_Z = Zj[0,x2] #el ultimo valor de Zj
+        m = 0
+        solucion = np.zeros((1,x_a))
+        for i in range(x_a):
+            if var_bas[0,i] == 1:
+                #si en las basicas hay una variable del problema imprime su valor
+                st.write(f'$x_{{{i+1}}}={b_r[m]}$')
+                solucion[0,i] = b_r[m]
+                m+=1
+            else:
+                #si no su valor es 0
+                st.write(f'$x_{{{i+1}}}=0$')
+                solucion[0,i] = 0
+    else:
+        #no se encontro una solucion optima
+        factible = False
+        solucion = np.full((1,x_a),margen-(0.2*margen))            
+    crear_grafica(x_a,r,solucion,restricciones,b,option,factible,margen,FO_original,solucion_Z)
+
+        
+
+def eliminar_artificiales(A,x,FO2,arr,var_art,var_bas):
+    #st.write(var_art)
+    #st.write(arr)    
+    #st.write(A)
+    arr = np.delete(arr, var_art[0,:].astype(int) , 1)
+    FO2 = np.delete(FO2, var_art[0,:].astype(int),1)
+    var_bas = np.delete(var_bas, var_art[0,:].astype(int), 1)
+    A = np.delete(A, var_art[0,:].astype(int),1)        
+    x = x - var_art.size
+    #st.write(A)
+    #st.write(x)
+    #st.write(arr)
+    #st.write(FO2)
+    return A,x,FO2,arr,var_art,var_bas
+    
+    
+def estandarizar(x,r,FO,arr,option,rest, M, metodo):
 
     # Cambio de signo cuando el lado derecho es negativo
     for i in range(r):
@@ -297,19 +557,34 @@ def estandarizar(x,r,FO,arr,option,rest, M):
     arr = a #guardamos la matriz estandarizada en la matriz A anteriormente creada
     
     #Estandarizamos la FO
-    b = np.zeros((1,var_agr)) #variable de control, vector = a las variables de FO + variables agregadas
-    b[:,:x] = FO #guardamos los cocientes de la FO
+    b = np.zeros((1,var_agr)) #variable de control, vector = a las variables de FO + variables agregadas    
     
-    FO = b #sobreescribimos la FO
-    x = var_agr #sobreescribimos las variables con las variables agregadas
     #st.write(var_art) #debug
-    for i in range(art):
-        #buscamos la posicion de las variables artificiales para añadir la penalizacion
-        FO[0,int(var_art[0,i])] = M
-
-    #st.write(FO) #debug
-    #retorna todo estandarizado
-    return x,r,FO,arr,option,rest  
+    if metodo == 'Penalización (Gran M)':
+        b[:,:x] = FO #guardamos los cocientes de la FO 
+        for i in range(art):
+            #buscamos la posicion de las variables artificiales para añadir la penalizacion
+            b[0,int(var_art[0,i])] = M
+        x = var_agr #sobreescribimos las variables con las variables agregadas
+        FO = b #sobreescribimos la FO
+        #st.write(FO) #debug
+        #retorna todo estandarizado    
+        return x,r,FO,arr,option,rest,var_art
+    elif metodo == 'Dos fases':
+        FO2 = b.copy()
+        FO2[:,:x] = FO #guardamos los cocientes de la FO 
+        for i in range(art):
+            #buscamos la posicion de las variables artificiales para añadir la penalizacion
+            b[0,int(var_art[0,i])] = 1
+        x = var_agr #sobreescribimos las variables con las variables agregadas
+        FO = b.copy() #sobreescribimos la FO
+        
+        #st.write(FO) #debug
+        #retorna todo estandarizado    
+        return x,r,FO,FO2,arr,option,rest,var_art
+    
+    
+    
     
 def preparar_tablero(x,x_a,r,obj,FO,arr,option,rest,M):
     #definimos las 3 matrices para la solucion
@@ -479,8 +754,11 @@ def obtener_B_inv(A,var_bas,r,x):
                 B[j,k] = A[j,i]
             k+=1 #apuntador de columnas en matriz B
     #st.write('B',B)
+    #st.write('A',A)
     B_inv = np.linalg.inv(B) #sacar inversa a una matriz
     return B_inv
+
+
 
 def crear_grafica(x_a,r,solucion,restricciones,b,option,factible,margen,FO_original,solucion_Z):
     if x_a == 2:
